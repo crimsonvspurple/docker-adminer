@@ -12,12 +12,16 @@ RUN	addgroup -S adminer \
 &&	adduser -S -G adminer adminer \
 &&	mkdir -p /var/www/html \
 &&	mkdir /var/www/html/plugins-enabled \
-&&	chown -R adminer:adminer /var/www/html
+&&	mkdir -p /var/lib/adminer \
+&&	chown -R adminer:adminer /var/www/html /var/lib/adminer
 
 WORKDIR /var/www/html
 
 RUN	set -x \
 &&	apk add --no-cache --virtual .build-deps \
+	$PHPIZE_DEPS \
+	openssl-dev \
+	cyrus-sasl-dev \
 	postgresql-dev \
 	sqlite-dev \
 	unixodbc-dev \
@@ -29,6 +33,8 @@ RUN	set -x \
 	pdo_sqlite \
 	pdo_odbc \
 	pdo_dblib \
+&&	pecl install mongodb \
+&&	docker-php-ext-enable mongodb \
 &&	runDeps="$( \
 		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/lib/php/extensions \
 			| tr ',' '\n' \
@@ -41,16 +47,28 @@ RUN	set -x \
 COPY	*.php /var/www/html/
 
 ENV	ADMINER_VERSION=6.1.2
-ENV	ADMINER_DOWNLOAD_SHA256=b32316156bd18ffa99c1a27617142c2e5ad72260e37f15da4e9937a3dbb15f57
+ENV	ADMINER_DOWNLOAD_SHA256=56fae7a3bdaae6ff12c404378b1045c02dbe9529a5afda0b901ded0e1f63302f
 ENV	ADMINER_SRC_DOWNLOAD_SHA256=6e968d1826117139a28f7e4ae39effb366dadd1fda05b0ce1b64c22c1b986d4f
 
 RUN	set -x \
-&&	curl -fsSL https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION.php -o adminer.php \
+&&	curl -fsSL https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION-en.php -o adminer.php \
 &&	echo "$ADMINER_DOWNLOAD_SHA256  adminer.php" |sha256sum -c - \
 &&	curl -fsSL https://github.com/vrana/adminer/archive/v$ADMINER_VERSION.tar.gz -o source.tar.gz \
 &&	echo "$ADMINER_SRC_DOWNLOAD_SHA256  source.tar.gz" |sha256sum -c - \
 &&	tar xzf source.tar.gz --strip-components=1 "adminer-$ADMINER_VERSION/designs/" "adminer-$ADMINER_VERSION/plugins/" \
 &&	rm source.tar.gz
+
+COPY	plugins-extra/human-readable-size.php /var/www/html/plugins/human-readable-size.php
+COPY	plugins-extra/docker-login-passkey.php /usr/local/share/adminer/docker-login-passkey.php
+
+# The compiled build drops parameter types. MongoDB and Redis driver sources
+# still have them, and PHP 8 rejects the override. Drop parameter types, keep
+# return types, and do not leave the script in the image.
+COPY	plugins-extra/strip-driver-types.php /tmp/strip-driver-types.php
+RUN	php /tmp/strip-driver-types.php \
+		/var/www/html/plugins/drivers/mongo.php \
+		/var/www/html/plugins/drivers/redis.php \
+	&& rm /tmp/strip-driver-types.php
 
 COPY	entrypoint.sh /usr/local/bin/
 ENTRYPOINT	[ "entrypoint.sh", "docker-php-entrypoint" ]

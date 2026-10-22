@@ -1,0 +1,109 @@
+name: Publish image
+
+# Pushes container images to this repository's GHCR only.
+# It does not push git commits, and it cannot publish to TimWolla/docker-adminer
+# or to docker-library/official-images. contents is read-only on purpose.
+permissions:
+  contents: read
+  packages: write
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - "6"
+          - "6/fastcgi"
+          - "5"
+          - "5/fastcgi"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Image tags
+        id: meta
+        env:
+          VARIANT: ${{ matrix.variant }}
+        run: |
+          set -eu
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          image="ghcr.io/${owner}/docker-adminer"
+          ver="$(awk -F= '/^ENV[[:space:]]+ADMINER_VERSION=/{print $2; exit}' "$VARIANT/Dockerfile")"
+          major="${ver%%.*}"
+          suffix=""
+          case "$VARIANT" in
+            */fastcgi) suffix="-fastcgi" ;;
+          esac
+          {
+            echo "${image}:${ver}${suffix}"
+            echo "${image}:${major}${suffix}"
+            if [ -z "$suffix" ] && [ "$major" = "6" ]; then
+              echo "${image}:latest"
+              echo "${image}:${ver}-standalone"
+              echo "${image}:${major}-standalone"
+              echo "${image}:standalone"
+            elif [ -z "$suffix" ]; then
+              echo "${image}:${ver}-standalone"
+              echo "${image}:${major}-standalone"
+            elif [ "$major" = "6" ]; then
+              echo "${image}:fastcgi"
+            fi
+          } > "$RUNNER_TEMP/tags"
+          {
+            echo "image=${image}"
+            echo "tags<<EOF"
+            cat "$RUNNER_TEMP/tags"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.variant }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.description=English Adminer with permanent login, env defaults, MongoDB, Redis, and passkey
+
+  visibility:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make the GHCR package public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          owner="$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          code="$(curl -sS -o /tmp/visibility.json -w '%{http_code}' -X PUT \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/users/${owner}/packages/container/docker-adminer/visibility" \
+            -d '{"visibility":"public"}')"
+          cat /tmp/visibility.json
+          echo
+          if [ "$code" != "200" ] && [ "$code" != "204" ]; then
+            echo "::warning::Could not set package visibility (HTTP ${code}). If the image is private, set ghcr.io/${owner}/docker-adminer to public in the package settings."
+          fi

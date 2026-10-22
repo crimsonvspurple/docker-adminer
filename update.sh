@@ -28,12 +28,13 @@ for version in "${versions[@]}"; do
 
 	echo "$version: $fullVersion"
 
+	# English-only build. The multi-language adminer-${fullVersion}.php is a different file.
 	downloadSha256="$(
-		curl -fsSL "https://github.com/vrana/adminer/releases/download/v${fullVersion}/adminer-${fullVersion}.php" \
+		curl -fsSL "https://github.com/vrana/adminer/releases/download/v${fullVersion}/adminer-${fullVersion}-en.php" \
 			| sha256sum \
 			| cut -d' ' -f1
 	)"
-	echo "  - adminer-${fullVersion}.php: $downloadSha256"
+	echo "  - adminer-${fullVersion}-en.php: $downloadSha256"
 
 	srcDownloadSha256="$(
 		curl -fsSL "https://github.com/vrana/adminer/archive/v${fullVersion}.tar.gz" \

@@ -10,10 +10,14 @@ RUN	addgroup -S adminer \
 &&	adduser -S -G adminer adminer \
 &&	mkdir -p /var/www/html \
 &&	mkdir /var/www/html/plugins-enabled \
-&&	chown -R adminer:adminer /var/www/html
+&&	mkdir -p /var/lib/adminer \
+&&	chown -R adminer:adminer /var/www/html /var/lib/adminer
 
 RUN	set -x \
 &&	apk add --no-cache --virtual .build-deps \
+	$PHPIZE_DEPS \
+	openssl-dev \
+	cyrus-sasl-dev \
 	postgresql-dev \
 	sqlite-dev \
 	unixodbc-dev \
@@ -25,6 +29,8 @@ RUN	set -x \
 	pdo_sqlite \
 	pdo_odbc \
 	pdo_dblib \
+&&	pecl install mongodb \
+&&	docker-php-ext-enable mongodb \
 &&	runDeps="$( \
 		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/lib/php/extensions \
 			| tr ',' '\n' \
@@ -37,16 +43,33 @@ RUN	set -x \
 COPY	*.php /var/www/html/
 
 ENV	ADMINER_VERSION=5.5.1
-ENV	ADMINER_DOWNLOAD_SHA256=f2c70c6403a042d554be1dd8d69b6f6270a97e5b40d2fb7626f46aad821e9a18
+ENV	ADMINER_DOWNLOAD_SHA256=a0bb7d4ef753dd2161f8ac3dc1712d084dc124b92a34f391125fb2bd15d03d9f
 ENV	ADMINER_SRC_DOWNLOAD_SHA256=dfac9604fc044e0856fbcacd587db9540df4e67d53a180377f51b9a228d7b136
 
 RUN	set -x \
-&&	curl -fsSL https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION.php -o adminer.php \
+&&	curl -fsSL https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION-en.php -o adminer.php \
 &&	echo "$ADMINER_DOWNLOAD_SHA256  adminer.php" |sha256sum -c - \
 &&	curl -fsSL https://github.com/vrana/adminer/archive/v$ADMINER_VERSION.tar.gz -o source.tar.gz \
 &&	echo "$ADMINER_SRC_DOWNLOAD_SHA256  source.tar.gz" |sha256sum -c - \
 &&	tar xzf source.tar.gz --strip-components=1 "adminer-$ADMINER_VERSION/designs/" "adminer-$ADMINER_VERSION/plugins/" \
 &&	rm source.tar.gz
+
+COPY	plugins-extra/human-readable-size.php /var/www/html/plugins/human-readable-size.php
+COPY	plugins-extra/docker-login-passkey.php /usr/local/share/adminer/docker-login-passkey.php
+
+# The compiled build drops parameter types. MongoDB and Redis driver sources
+# still have them, and PHP 8 rejects the override. Drop parameter types, keep
+# return types, and do not leave the script in the image.
+COPY	plugins-extra/strip-driver-types.php /tmp/strip-driver-types.php
+RUN	php /tmp/strip-driver-types.php \
+		/var/www/html/plugins/drivers/mongo.php \
+		/var/www/html/plugins/drivers/redis.php \
+	&& rm /tmp/strip-driver-types.php
+
+# Plugin drivers define Adminer\DRIVER. A php-fpm worker would keep that constant
+# and serve later requests as the wrong database system. One request per worker
+# drops it. Adminer is an admin UI, so the extra process start is acceptable.
+RUN	echo 'pm.max_requests = 1' > /usr/local/etc/php-fpm.d/zz-adminer.conf
 
 COPY	entrypoint.sh /usr/local/bin/
 ENTRYPOINT	[ "entrypoint.sh", "docker-php-entrypoint" ]

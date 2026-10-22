@@ -1,5 +1,10 @@
 name: Build Docker Image
 
+# Read-only on purpose. This workflow builds and smoke-tests. It does not push
+# commits or images. Image publishing lives in publish.yml and only targets GHCR.
+permissions:
+  contents: read
+
 on:
 - push
 - pull_request

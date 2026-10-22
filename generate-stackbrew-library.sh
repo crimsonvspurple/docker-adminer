@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Fork note: this script still describes the Docker Official Image upstream.
+# Do not open a pull request against docker-library/official-images from this fork.
+# Image builds for this fork are published by .github/workflows/publish.yml to GHCR.
+
 declare -A aliases=(
 	[6]='latest'
 )
