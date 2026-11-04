@@ -1,4 +1,4 @@
-FROM php:8.4-alpine
+FROM php:8.5-alpine
 
 RUN	echo "upload_max_filesize = 128M" >> /usr/local/etc/php/conf.d/0-upload_large_dumps.ini \
 &&	echo "post_max_size = 128M" >> /usr/local/etc/php/conf.d/0-upload_large_dumps.ini \
@@ -46,9 +46,9 @@ RUN	set -x \
 
 COPY	*.php /var/www/html/
 
-ENV	ADMINER_VERSION=6.1.2
-ENV	ADMINER_DOWNLOAD_SHA256=56fae7a3bdaae6ff12c404378b1045c02dbe9529a5afda0b901ded0e1f63302f
-ENV	ADMINER_SRC_DOWNLOAD_SHA256=6e968d1826117139a28f7e4ae39effb366dadd1fda05b0ce1b64c22c1b986d4f
+ENV	ADMINER_VERSION=6.3.0
+ENV	ADMINER_DOWNLOAD_SHA256=f467aac2419f3992e4bf450f8d88ee9d6ddd45243eb72fa224747019da33a8fa
+ENV	ADMINER_SRC_DOWNLOAD_SHA256=651353bc14d125b548c429cc3ffaa30b97c8b0f86b1b1692138a35a2047fba3a
 
 RUN	set -x \
 &&	curl -fsSL https://github.com/vrana/adminer/releases/download/v$ADMINER_VERSION/adminer-$ADMINER_VERSION-en.php -o adminer.php \

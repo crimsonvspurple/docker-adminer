@@ -26,8 +26,6 @@ jobs:
         variant:
           - "6"
           - "6/fastcgi"
-          - "5"
-          - "5/fastcgi"
     steps:
       - uses: actions/checkout@v7
 
