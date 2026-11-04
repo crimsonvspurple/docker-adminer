@@ -10,10 +10,8 @@ ghcr.io/crimsonvspurple/docker-adminer:latest
 | --- | --- |
 | `6.3.0`, `6`, `latest`, `6.3.0-standalone`, `6-standalone`, `standalone` | Adminer 6, PHP built-in server, port 8080 |
 | `6.3.0-fastcgi`, `6-fastcgi`, `fastcgi` | Adminer 6, php-fpm |
-| `5.5.1`, `5`, `5.5.1-standalone`, `5-standalone` | Adminer 5, PHP built-in server, port 8080 |
-| `5.5.1-fastcgi`, `5-fastcgi` | Adminer 5, php-fpm |
 
-Adminer 5 has permanent login, the environment defaults, English, MongoDB, Redis, and human-readable sizes. The passkey plugin ships with Adminer 6 only.
+This image tracks Adminer 6 only (PHP 8.5). Permanent login, environment defaults, English, MongoDB, Redis, human-readable sizes, and the passkey plugin are all included. Older Adminer 5 tags that were published before remain on GHCR but are no longer built.
 
 The fastcgi images set `pm.max_requests = 1`. MongoDB and Redis define the driver for the whole PHP process, and a reused php-fpm worker would keep serving later clicks as that driver.
 
