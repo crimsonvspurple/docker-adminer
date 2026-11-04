@@ -8,8 +8,8 @@ ghcr.io/crimsonvspurple/docker-adminer:latest
 
 | Tag | What it is |
 | --- | --- |
-| `6.1.2`, `6`, `latest`, `6.1.2-standalone`, `6-standalone`, `standalone` | Adminer 6, PHP built-in server, port 8080 |
-| `6.1.2-fastcgi`, `6-fastcgi`, `fastcgi` | Adminer 6, php-fpm |
+| `6.3.0`, `6`, `latest`, `6.3.0-standalone`, `6-standalone`, `standalone` | Adminer 6, PHP built-in server, port 8080 |
+| `6.3.0-fastcgi`, `6-fastcgi`, `fastcgi` | Adminer 6, php-fpm |
 | `5.5.1`, `5`, `5.5.1-standalone`, `5-standalone` | Adminer 5, PHP built-in server, port 8080 |
 | `5.5.1-fastcgi`, `5-fastcgi` | Adminer 5, php-fpm |
 
