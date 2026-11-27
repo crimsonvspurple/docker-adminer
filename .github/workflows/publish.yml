@@ -6,6 +6,7 @@ name: Publish image
 permissions:
   contents: read
   packages: write
+  actions: write
 
 on:
   push:
@@ -65,7 +66,6 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
@@ -78,9 +78,11 @@ jobs:
         with:
           context: ${{ matrix.variant }}
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           provenance: false
           tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha,scope=${{ contains(matrix.variant, 'fastcgi') && 'adminer-fastcgi' || 'adminer-standalone' }}
+          cache-to: type=gha,mode=max,scope=${{ contains(matrix.variant, 'fastcgi') && 'adminer-fastcgi' || 'adminer-standalone' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=English Adminer with permanent login, env defaults, MongoDB, Redis, and passkey
