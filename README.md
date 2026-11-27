@@ -8,8 +8,8 @@ ghcr.io/crimsonvspurple/docker-adminer:latest
 
 | Tag | What it is |
 | --- | --- |
-| `6.3.0`, `6`, `latest`, `6.3.0-standalone`, `6-standalone`, `standalone` | Adminer 6, PHP built-in server, port 8080 |
-| `6.3.0-fastcgi`, `6-fastcgi`, `fastcgi` | Adminer 6, php-fpm |
+| `6.3.1`, `6`, `latest`, `6.3.1-standalone`, `6-standalone`, `standalone` | Adminer 6, PHP built-in server, port 8080 |
+| `6.3.1-fastcgi`, `6-fastcgi`, `fastcgi` | Adminer 6, php-fpm |
 
 This image tracks Adminer 6 only (PHP 8.5). Permanent login, environment defaults, English, MongoDB, Redis, human-readable sizes, and the passkey plugin are all included. Older Adminer 5 tags that were published before remain on GHCR but are no longer built.
 
